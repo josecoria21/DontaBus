@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area for iOS */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Leaflet popup overrides for Tailwind compatibility */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+}
+
+.leaflet-popup-content {
+  margin: 0.75rem !important;
+  font-family: inherit !important;
+}
+
+/* Responsive popup for narrow screens */
+@media (max-width: 360px) {
+  .leaflet-popup-content-wrapper {
+    max-width: calc(100vw - 3rem) !important;
+  }
+}
+
+/* Hide default Leaflet zoom control, we use gestures */
+.leaflet-control-zoom {
+  display: none !important;
+}
+
+/* Slide-up entrance animation */
+@keyframes slide-up {
+  from { transform: translateY(1rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up { animation: slide-up 0.2s ease-out; }

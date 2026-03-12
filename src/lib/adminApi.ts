@@ -1,0 +1,109 @@
+import { supabase } from './supabase'
+import type { StopFeature, StopRoutesData, RouteStopsData, RouteStopEntry } from '../types'
+
+const adminSecret = import.meta.env.VITE_ADMIN_SECRET || ''
+
+export function isAdminConfigured(): boolean {
+  return !!supabase && !!adminSecret
+}
+
+/** Flatten editor state into the flat arrays the RPC expects */
+export async function saveStopsToSupabase(
+  features: StopFeature[],
+  stopRoutes: StopRoutesData,
+  routeStops: RouteStopsData
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase not configured' }
+
+  // Stops: flat array with stop_id, original_count, num_routes, lng, lat
+  const stopsJson = features.map(f => ({
+    stop_id: f.properties.stop_id,
+    original_count: f.properties.original_count,
+    num_routes: f.properties.num_routes,
+    lng: f.geometry.coordinates[0],
+    lat: f.geometry.coordinates[1],
+  }))
+
+  // Stop routes: flat array of {stop_id, route_key}
+  const stopRoutesJson: { stop_id: number; route_key: string }[] = []
+  for (const [stopId, routeKeys] of Object.entries(stopRoutes)) {
+    for (const routeKey of routeKeys) {
+      stopRoutesJson.push({ stop_id: Number(stopId), route_key: routeKey })
+    }
+  }
+
+  // Route stops: flat array of {route_key, stop_id, sequence, travel_time, dwell_time}
+  const routeStopsJson: { route_key: string; stop_id: number; sequence: number; travel_time: number; dwell_time: number }[] = []
+  for (const [routeKey, entries] of Object.entries(routeStops)) {
+    for (const entry of entries) {
+      routeStopsJson.push({
+        route_key: routeKey,
+        stop_id: entry.stop_id,
+        sequence: entry.sequence,
+        travel_time: entry.travel_time,
+        dwell_time: entry.dwell_time,
+      })
+    }
+  }
+
+  const { data, error } = await supabase.rpc('save_stops_data', {
+    secret: adminSecret,
+    stops_json: stopsJson,
+    stop_routes_json: stopRoutesJson,
+    route_stops_json: routeStopsJson,
+  })
+
+  if (error) return { success: false, error: error.message }
+  if (data && !data.success) return { success: false, error: data.error }
+  return { success: true }
+}
+
+/** Load all stops data from Supabase in one round-trip, or null on failure/empty */
+export async function loadStopsFromSupabase(): Promise<{
+  features: StopFeature[]
+  stopRoutes: StopRoutesData
+  routeStops: RouteStopsData
+} | null> {
+  if (!supabase) return null
+
+  const { data, error } = await supabase.rpc('get_stops_data')
+  if (error || !data) return null
+
+  const raw = data as {
+    stops_features: { stop_id: number; original_count: number; num_routes: number; lng: number; lat: number }[]
+    stop_routes: { stop_id: number; route_key: string }[]
+    route_stops: { route_key: string; stop_id: number; sequence: number; travel_time: number; dwell_time: number }[]
+  }
+
+  if (!raw.stops_features || raw.stops_features.length === 0) return null
+
+  // Rebuild StopFeature[]
+  const features: StopFeature[] = raw.stops_features.map(s => ({
+    type: 'Feature' as const,
+    properties: { stop_id: s.stop_id, original_count: s.original_count, num_routes: s.num_routes },
+    geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] as [number, number] },
+  }))
+
+  // Rebuild StopRoutesData
+  const stopRoutes: StopRoutesData = {}
+  for (const row of raw.stop_routes) {
+    const key = String(row.stop_id)
+    if (!stopRoutes[key]) stopRoutes[key] = []
+    stopRoutes[key].push(row.route_key)
+  }
+
+  // Rebuild RouteStopsData
+  const routeStops: RouteStopsData = {}
+  for (const row of raw.route_stops) {
+    if (!routeStops[row.route_key]) routeStops[row.route_key] = []
+    const entry: RouteStopEntry = {
+      stop_id: row.stop_id,
+      sequence: row.sequence,
+      travel_time: row.travel_time,
+      dwell_time: row.dwell_time,
+    }
+    routeStops[row.route_key].push(entry)
+  }
+
+  return { features, stopRoutes, routeStops }
+}
