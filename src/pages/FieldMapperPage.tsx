@@ -6,6 +6,7 @@ import { useRouteData } from '../hooks/useRouteData'
 import { useNearestStopAll } from '../hooks/useNearestStopAll'
 import { useFieldStopDetector } from '../hooks/useFieldStopDetector'
 import { useFieldMapperStore } from '../store/fieldMapperStore'
+import { useStopEditorStore } from '../store/stopEditorStore'
 import { ModeSelector } from '../components/FieldMapper/ModeSelector'
 import { AtStopPanel } from '../components/FieldMapper/AtStopPanel'
 import { OnBusPanel } from '../components/FieldMapper/OnBusPanel'
@@ -72,6 +73,15 @@ export function FieldMapperPage() {
     onStopDetected: handleStopDetected,
     enabled: mode === 'on-bus' && selectedRouteKey !== null,
   })
+
+  const handleAddNewStop = useCallback(() => {
+    if (!position || !selectedRouteKey) return
+    useStopEditorStore.getState().addStop(position.lng, position.lat)
+    const newId = useStopEditorStore.getState().selectedStopId
+    if (newId !== null) {
+      linkStopToRoute(newId, selectedRouteKey)
+    }
+  }, [position, selectedRouteKey, linkStopToRoute])
 
   const handleSave = async () => {
     const ok = await saveEntriesToServer()
@@ -159,9 +169,11 @@ export function FieldMapperPage() {
                     pendingStopDistance={pendingStopDistance}
                     routes={routes}
                     sessionEntries={sessionEntries}
+                    userPosition={position}
                     onSelectRoute={setSelectedRouteKey}
                     onConfirm={confirmPendingStop}
                     onDismiss={dismissPendingStop}
+                    onAddNewStop={handleAddNewStop}
                   />
                 )}
               </div>

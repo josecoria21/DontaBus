@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer } from 'react-leaflet'
 import { useTranslation } from 'react-i18next'
 import { useAdminStopsData } from '../hooks/useAdminStopsData'
 import { useStopEditorStore } from '../store/stopEditorStore'
+import { useGeolocation } from '../hooks/useGeolocation'
 import { EditorMarkers } from '../components/Admin/EditorMarkers'
 import { EditorToolbar } from '../components/Admin/EditorToolbar'
 import { StopInfoPanel } from '../components/Admin/StopInfoPanel'
 import { MergePanel } from '../components/Admin/MergePanel'
 import { GeocoderControl } from '../components/Admin/GeocoderControl'
 import { MapClickHandler } from '../components/Admin/MapClickHandler'
+import { UserLocationMarker } from '../components/Map/UserLocationMarker'
+import { LocateButton } from '../components/Map/LocateButton'
 import { XALAPA_CENTER } from '../lib/constants'
 import 'leaflet/dist/leaflet.css'
 
@@ -23,6 +26,23 @@ export function AdminStopsPage() {
   const loadEditorData = useStopEditorStore(s => s.loadEditorData)
   const mergeMode = useStopEditorStore(s => s.mergeMode)
   const [satellite, setSatellite] = useState(false)
+  const { position, accuracy, loading: geoLoading, locate } = useGeolocation()
+  const [flyToUser, setFlyToUser] = useState(false)
+  const hasAutoFlown = useRef(false)
+
+  useEffect(() => {
+    if (position && !hasAutoFlown.current) {
+      hasAutoFlown.current = true
+      setFlyToUser(true)
+      setTimeout(() => setFlyToUser(false), 100)
+    }
+  }, [position])
+
+  const handleLocate = () => {
+    locate()
+    setFlyToUser(true)
+    setTimeout(() => setFlyToUser(false), 100)
+  }
 
   useEffect(() => {
     if (features && stopRoutes && routeStops) {
@@ -54,12 +74,20 @@ export function AdminStopsPage() {
         </svg>
       </button>
 
-      {/* Field mapper link — below back button to avoid toolbar overlap */}
+      {/* Field mapper link — desktop only, on mobile it's in the overflow menu */}
       <button
         onClick={() => navigate('/admin/field-mapper')}
-        className="absolute top-14 left-3 z-[1001] bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-md px-3 py-2 text-xs font-medium transition-colors"
+        className="hidden sm:block absolute bottom-20 left-3 z-[1001] bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl shadow-lg px-4 py-3 text-sm font-semibold transition-colors"
       >
         {t('field_title')}
+      </button>
+
+      {/* Route editor link — desktop only, on mobile it's in the overflow menu */}
+      <button
+        onClick={() => navigate('/admin/routes')}
+        className="hidden sm:block absolute bottom-20 left-44 z-[1001] bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl shadow-lg px-4 py-3 text-sm font-semibold transition-colors"
+      >
+        {t('admin_routes_title')}
       </button>
 
       <EditorToolbar satellite={satellite} onToggleSatellite={() => setSatellite(s => !s)} dataSource={source} />
@@ -81,7 +109,12 @@ export function AdminStopsPage() {
         <EditorMarkers />
         <GeocoderControl />
         <MapClickHandler />
+        {position && (
+          <UserLocationMarker position={position} accuracy={accuracy} flyTo={flyToUser} />
+        )}
       </MapContainer>
+
+      <LocateButton onClick={handleLocate} loading={geoLoading} active={!!position} className="absolute bottom-36 sm:bottom-24 right-3" />
 
       <StopInfoPanel />
       {mergeMode && <MergePanel />}

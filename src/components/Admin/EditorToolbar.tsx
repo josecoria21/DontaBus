@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useStopEditorStore } from '../../store/stopEditorStore'
+import { useIsMobile } from '../../hooks/useIsMobile'
+import { EditorToolbarMobile } from './EditorToolbarMobile'
 import type { DataSource } from '../../hooks/useAdminStopsData'
 
-interface EditorToolbarProps {
+export interface EditorToolbarProps {
   satellite: boolean
   onToggleSatellite: () => void
   dataSource: DataSource
@@ -19,36 +21,15 @@ function downloadJSON(data: unknown, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-export function EditorToolbar({ satellite, onToggleSatellite, dataSource }: EditorToolbarProps) {
-  const { t } = useTranslation()
-  const features = useStopEditorStore(s => s.features)
-  const isDirty = useStopEditorStore(s => s.isDirty)
-  const saving = useStopEditorStore(s => s.saving)
-  const lastSaveError = useStopEditorStore(s => s.lastSaveError)
-  const saveToServer = useStopEditorStore(s => s.saveToServer)
-  const historyIndex = useStopEditorStore(s => s.historyIndex)
-  const historyLength = useStopEditorStore(s => s.history.length)
-  const selectedStopId = useStopEditorStore(s => s.selectedStopId)
-  const addMode = useStopEditorStore(s => s.addMode)
-  const dragMode = useStopEditorStore(s => s.dragMode)
-  const pendingMove = useStopEditorStore(s => s.pendingMove)
-  const mergeMode = useStopEditorStore(s => s.mergeMode)
-  const mergeTargetId = useStopEditorStore(s => s.mergeTargetId)
+export function EditorToolbar(props: EditorToolbarProps) {
   const undo = useStopEditorStore(s => s.undo)
   const redo = useStopEditorStore(s => s.redo)
-  const deleteStop = useStopEditorStore(s => s.deleteStop)
   const setAddMode = useStopEditorStore(s => s.setAddMode)
   const setDragMode = useStopEditorStore(s => s.setDragMode)
-  const confirmMove = useStopEditorStore(s => s.confirmMove)
-  const cancelMove = useStopEditorStore(s => s.cancelMove)
   const cancelMerge = useStopEditorStore(s => s.cancelMerge)
-  const toGeoJSON = useStopEditorStore(s => s.toGeoJSON)
-  const toStopRoutesJSON = useStopEditorStore(s => s.toStopRoutesJSON)
-  const toRouteStopsJSON = useStopEditorStore(s => s.toRouteStopsJSON)
+  const isMobile = useIsMobile()
 
-  const canUndo = historyIndex > 0
-  const canRedo = historyIndex < historyLength - 1
-
+  // Keyboard shortcuts — shared between desktop and mobile
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -73,6 +54,43 @@ export function EditorToolbar({ satellite, onToggleSatellite, dataSource }: Edit
     return () => window.removeEventListener('keydown', handleKey)
   }, [undo, redo, setAddMode, setDragMode, cancelMerge])
 
+  if (isMobile) {
+    return <EditorToolbarMobile {...props} />
+  }
+
+  return <EditorToolbarDesktop {...props} />
+}
+
+// Desktop toolbar — unchanged from original
+function EditorToolbarDesktop({ satellite, onToggleSatellite, dataSource }: EditorToolbarProps) {
+  const { t } = useTranslation()
+  const features = useStopEditorStore(s => s.features)
+  const isDirty = useStopEditorStore(s => s.isDirty)
+  const saving = useStopEditorStore(s => s.saving)
+  const lastSaveError = useStopEditorStore(s => s.lastSaveError)
+  const saveToServer = useStopEditorStore(s => s.saveToServer)
+  const historyIndex = useStopEditorStore(s => s.historyIndex)
+  const historyLength = useStopEditorStore(s => s.history.length)
+  const selectedStopId = useStopEditorStore(s => s.selectedStopId)
+  const addMode = useStopEditorStore(s => s.addMode)
+  const dragMode = useStopEditorStore(s => s.dragMode)
+  const pendingMove = useStopEditorStore(s => s.pendingMove)
+  const mergeMode = useStopEditorStore(s => s.mergeMode)
+  const mergeTargetId = useStopEditorStore(s => s.mergeTargetId)
+  const deleteStop = useStopEditorStore(s => s.deleteStop)
+  const setAddMode = useStopEditorStore(s => s.setAddMode)
+  const setDragMode = useStopEditorStore(s => s.setDragMode)
+  const confirmMove = useStopEditorStore(s => s.confirmMove)
+  const cancelMove = useStopEditorStore(s => s.cancelMove)
+  const toGeoJSON = useStopEditorStore(s => s.toGeoJSON)
+  const toStopRoutesJSON = useStopEditorStore(s => s.toStopRoutesJSON)
+  const toRouteStopsJSON = useStopEditorStore(s => s.toRouteStopsJSON)
+
+  const canUndo = historyIndex > 0
+  const canRedo = historyIndex < historyLength - 1
+  const undo = useStopEditorStore(s => s.undo)
+  const redo = useStopEditorStore(s => s.redo)
+
   function handleDelete() {
     if (selectedStopId === null) return
     if (window.confirm(t('admin_confirm_delete'))) {
@@ -82,7 +100,6 @@ export function EditorToolbar({ satellite, onToggleSatellite, dataSource }: Edit
 
   function handleDownload() {
     downloadJSON(toGeoJSON(), 'stops.geojson')
-    // Stagger downloads to prevent browser from blocking multiple simultaneous saves
     setTimeout(() => downloadJSON(toStopRoutesJSON(), 'stop_routes.json'), 200)
     setTimeout(() => downloadJSON(toRouteStopsJSON(), 'route_stops.json'), 400)
   }
@@ -92,8 +109,8 @@ export function EditorToolbar({ satellite, onToggleSatellite, dataSource }: Edit
   const btnActive = `${btnBase} bg-blue-600 text-white`
 
   return (
-    <div className="absolute top-3 left-12 right-12 z-[1001] flex items-center gap-1.5 flex-wrap justify-center">
-      <div className="flex items-center gap-1 bg-white/95 backdrop-blur rounded-lg shadow-md px-2 py-1.5">
+    <div className="absolute top-3 left-12 right-3 z-[1001] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1 bg-white/95 backdrop-blur rounded-lg shadow-md px-2 py-1.5 flex-shrink-0">
         <button onClick={undo} disabled={!canUndo} className={btnDefault} title={t('admin_undo')}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path fillRule="evenodd" d="M7.793 2.232a.75.75 0 0 1-.025 1.06L3.622 7.25h10.003a5.375 5.375 0 0 1 0 10.75H10.75a.75.75 0 0 1 0-1.5h2.875a3.875 3.875 0 0 0 0-7.75H3.622l4.146 3.957a.75.75 0 0 1-1.036 1.085l-5.5-5.25a.75.75 0 0 1 0-1.085l5.5-5.25a.75.75 0 0 1 1.06.025Z" clipRule="evenodd" />

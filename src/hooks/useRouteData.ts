@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { RoutesGeoJSON, StopsGeoJSON, RouteStopsData, StopRoutesData } from '../types'
 import { loadStopsFromSupabase } from '../lib/adminApi'
+import { useRouteEditorStore } from '../store/routeEditorStore'
 
 // Temporary: hide all route lines while we clean the data. Stops are shown unfiltered.
 const HIDE_ALL_ROUTES = true
@@ -18,6 +19,7 @@ interface RouteData {
 const cache: Partial<RouteData> = {}
 
 export function useRouteData(): RouteData {
+  const customRoutes = useRouteEditorStore(s => s.customRoutes)
   const [data, setData] = useState<Omit<RouteData, 'retry'>>({
     routes: (cache.routes as RoutesGeoJSON) ?? null,
     stops: (cache.stops as StopsGeoJSON) ?? null,
@@ -95,5 +97,18 @@ export function useRouteData(): RouteData {
     load()
   }, [load])
 
-  return { ...data, retry }
+  // Merge custom routes created via the route editor
+  const mergedRoutes = data.routes && customRoutes.length > 0
+    ? {
+        ...data.routes,
+        features: [
+          ...data.routes.features,
+          ...customRoutes.filter(cr =>
+            !data.routes!.features.some(r => r.properties.route_key === cr.properties.route_key)
+          ),
+        ],
+      }
+    : data.routes
+
+  return { ...data, routes: mergedRoutes, retry }
 }

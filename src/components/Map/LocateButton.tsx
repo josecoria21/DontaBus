@@ -4,15 +4,16 @@ interface Props {
   onClick: () => void
   loading: boolean
   active: boolean
+  className?: string
 }
 
-export function LocateButton({ onClick, loading, active }: Props) {
+export function LocateButton({ onClick, loading, active, className }: Props) {
   const { t } = useTranslation()
 
   return (
     <button
       onClick={onClick}
-      className={`absolute bottom-24 right-3 z-[1000] w-11 h-11 rounded-full shadow-lg flex items-center justify-center transition-colors ${
+      className={`${className ?? 'absolute bottom-24 right-3'} z-[1000] w-11 h-11 rounded-full shadow-lg flex items-center justify-center transition-colors ${
         active
           ? 'bg-blue-600 text-white'
           : 'bg-white text-slate-600 hover:bg-slate-50'

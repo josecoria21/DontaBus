@@ -4,6 +4,7 @@ import { RoutesPage } from './pages/RoutesPage'
 import { RouteDetailPage } from './pages/RouteDetailPage'
 import { AboutPage } from './pages/AboutPage'
 import { AdminStopsPage } from './pages/AdminStopsPage'
+import { AdminRoutesPage } from './pages/AdminRoutesPage'
 import { FieldMapperPage } from './pages/FieldMapperPage'
 import { BottomNav } from './components/BottomNav'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -20,6 +21,7 @@ export default function App() {
               <Route path="/routes/:routeKey" element={<RouteDetailPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/admin/stops" element={<AdminStopsPage />} />
+              <Route path="/admin/routes" element={<AdminRoutesPage />} />
               <Route path="/admin/field-mapper" element={<FieldMapperPage />} />
             </Routes>
           </div>

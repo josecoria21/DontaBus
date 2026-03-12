@@ -9,9 +9,11 @@ interface Props {
   pendingStopDistance: number | null
   routes: RoutesGeoJSON | null
   sessionEntries: FieldCollectionEntry[]
+  userPosition: { lat: number; lng: number } | null
   onSelectRoute: (routeKey: string) => void
   onConfirm: () => void
   onDismiss: () => void
+  onAddNewStop: () => void
 }
 
 export function OnBusPanel({
@@ -20,9 +22,11 @@ export function OnBusPanel({
   pendingStopDistance,
   routes,
   sessionEntries,
+  userPosition,
   onSelectRoute,
   onConfirm,
   onDismiss,
+  onAddNewStop,
 }: Props) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
@@ -142,6 +146,22 @@ export function OnBusPanel({
               <div className="w-4 h-4 rounded-full bg-slate-300 animate-pulse" />
             </div>
             <p>{t('field_waiting_stop')}</p>
+
+            {/* Rapid-fire: drop a new stop at current location */}
+            {userPosition && (
+              <button
+                onClick={() => {
+                  onAddNewStop()
+                  try { navigator.vibrate?.(100) } catch { /* ignore */ }
+                }}
+                className="mt-6 w-full max-w-xs mx-auto flex items-center justify-center gap-2 py-4 rounded-2xl bg-amber-500 text-white font-bold text-base shadow-lg active:bg-amber-600 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-6 h-6">
+                  <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                </svg>
+                {t('field_drop_stop_here')}
+              </button>
+            )}
           </div>
         )}
       </div>
