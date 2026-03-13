@@ -76,7 +76,7 @@ export function StopInfoPanel() {
   }
 
   return (
-    <div className="absolute bottom-[4.5rem] left-3 right-3 z-[1001] bg-white/95 backdrop-blur rounded-lg shadow-lg p-3 max-w-md mx-auto">
+    <div className="absolute bottom-[8.5rem] sm:bottom-[4.5rem] left-3 right-3 z-[1003] bg-white/95 backdrop-blur rounded-lg shadow-lg p-3 max-w-md mx-auto max-h-[60vh] overflow-y-auto">
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-sm font-semibold text-slate-800">
