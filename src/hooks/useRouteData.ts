@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { RoutesGeoJSON, StopsGeoJSON, RouteStopsData, StopRoutesData } from '../types'
-import { loadStopsFromSupabase, loadVerifiedRoutes } from '../lib/adminApi'
+import { loadStopsFromSupabase, loadVerifiedRoutes, loadRoutesFromSupabase } from '../lib/adminApi'
 import { useRouteEditorStore } from '../store/routeEditorStore'
 
 async function fetchJSON<T>(url: string): Promise<T> {
@@ -40,17 +40,26 @@ export function useRouteData(): RouteData {
     setData(prev => ({ ...prev, loading: true, error: null }))
     try {
       // Always load routes from static (not edited via admin)
-      const allRoutes = await fetchJSON<RoutesGeoJSON>('/data/routes.geojson')
+      let allRoutes = await fetchJSON<RoutesGeoJSON>('/data/routes.geojson')
       let routes = allRoutes
 
-      // Load static files (always needed as fallback for route associations)
-      const [staticStops, staticRouteStops, staticStopRoutes, supabaseData, verifiedRouteKeys] = await Promise.all([
+      // Load static files and Supabase data in parallel
+      const [staticStops, staticRouteStops, staticStopRoutes, supabaseData, verifiedRouteKeys, supabaseRoutes] = await Promise.all([
         fetchJSON<StopsGeoJSON>('/data/stops.geojson'),
         fetchJSON<RouteStopsData>('/data/route_stops.json'),
         fetchJSON<StopRoutesData>('/data/stop_routes.json'),
         loadStopsFromSupabase(),
         loadVerifiedRoutes(),
+        loadRoutesFromSupabase(),
       ])
+
+      // Merge Supabase routes into static routes (Supabase routes take priority)
+      if (supabaseRoutes.length > 0) {
+        const existingKeys = new Set(allRoutes.features.map(f => f.properties.route_key))
+        const newRoutes = supabaseRoutes.filter(r => !existingKeys.has(r.properties.route_key))
+        allRoutes = { ...allRoutes, features: [...allRoutes.features, ...newRoutes] }
+        routes = allRoutes
+      }
 
       // Use Supabase stop positions when available (admin may have moved/merged stops)
       // but fall back to static route associations when Supabase has none

@@ -77,6 +77,30 @@ export async function setRouteVerified(
   return { success: true }
 }
 
+/** Load routes from Supabase */
+export async function loadRoutesFromSupabase(): Promise<RouteFeature[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.from('routes').select('route_key, route_num, route_type, direction, name')
+  if (error || !data) return []
+  return data.map(r => ({
+    type: 'Feature' as const,
+    properties: {
+      route_key: r.route_key,
+      route_num: r.route_num,
+      route_type: r.route_type,
+      direction: r.direction,
+      name: r.name,
+      description: null,
+      notes: null,
+      peak_am: null,
+      midday: null,
+      peak_pm: null,
+      night: null,
+    },
+    geometry: { type: 'LineString' as const, coordinates: [] as [number, number][] },
+  }))
+}
+
 /** Sync custom routes to Supabase (upsert) */
 export async function syncRoutesToSupabase(
   routes: RouteFeature[]
