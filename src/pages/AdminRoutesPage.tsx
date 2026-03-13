@@ -119,7 +119,11 @@ export function AdminRoutesPage() {
     const result = await syncRoutesToSupabase(customRoutes)
     setSyncing(false)
     setSyncStatus(result.success ? 'success' : 'error')
-    if (!result.success) setError(result.error || 'Unknown error')
+    if (!result.success) {
+      const msg = result.error || 'Unknown error'
+      setError(msg)
+      alert(`Sync error: ${msg}`)
+    }
     setTimeout(() => setSyncStatus('idle'), 5000)
   }
 
