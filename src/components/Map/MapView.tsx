@@ -5,9 +5,13 @@ import { XALAPA_CENTER, DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM } from '../../lib/const
 import { StopMarkers } from './StopMarkers'
 import { RouteLine } from './RouteLine'
 import { UserLocationMarker } from './UserLocationMarker'
+import { DestinationHandler } from './DestinationHandler'
+import { DestinationMarker } from './DestinationMarker'
+import { BoardAlightMarkers } from './BoardAlightMarkers'
 import { useRouteData } from '../../hooks/useRouteData'
 import { useMapStore } from '../../store/mapStore'
 import type { RoutesGeoJSON } from '../../types'
+import type { DirectionRecommendation } from '../../lib/directionRecommender'
 import 'leaflet/dist/leaflet.css'
 
 function FlyToRoute({ routes }: { routes: RoutesGeoJSON | null }) {
@@ -38,12 +42,14 @@ interface MapViewProps {
   flyToUser?: boolean
   nearestStopId: number | null
   routeStopIds: Set<number> | null
+  recommendation?: DirectionRecommendation | null
 }
 
-export function MapView({ userPosition, userAccuracy, flyToUser, nearestStopId, routeStopIds }: MapViewProps) {
+export function MapView({ userPosition, userAccuracy, flyToUser, nearestStopId, routeStopIds, recommendation }: MapViewProps) {
   const { t } = useTranslation()
-  const { routes, stops, stopRoutes, loading, error, retry } = useRouteData()
+  const { routes, allRoutes, stops, stopRoutes, verifiedRouteKeys, loading, error, retry } = useRouteData()
   const selectedRouteKey = useMapStore((s) => s.selectedRouteKey)
+  const destination = useMapStore((s) => s.destination)
 
   if (loading) {
     return (
@@ -70,6 +76,11 @@ export function MapView({ userPosition, userAccuracy, flyToUser, nearestStopId, 
     )
   }
 
+  // Use allRoutes for rendering the route line when recommendation is active
+  // (the recommended route may not be verified yet, but allRoutes always has full data)
+  const routesForLine = recommendation && allRoutes ? allRoutes : routes
+  const showArrows = !!recommendation
+
   return (
     <MapContainer
       center={XALAPA_CENTER}
@@ -83,7 +94,8 @@ export function MapView({ userPosition, userAccuracy, flyToUser, nearestStopId, 
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FlyToRoute routes={routes} />
+      <FlyToRoute routes={routesForLine} />
+      <DestinationHandler />
       {userPosition && (
         <UserLocationMarker
           position={userPosition}
@@ -91,6 +103,7 @@ export function MapView({ userPosition, userAccuracy, flyToUser, nearestStopId, 
           flyTo={flyToUser}
         />
       )}
+      {destination && <DestinationMarker position={destination} />}
       {stops && stopRoutes && (
         <StopMarkers
           stops={stops}
@@ -99,10 +112,17 @@ export function MapView({ userPosition, userAccuracy, flyToUser, nearestStopId, 
           userPosition={userPosition}
           nearestStopId={nearestStopId}
           routeStopIds={routeStopIds}
+          verifiedRouteKeys={verifiedRouteKeys}
         />
       )}
-      {selectedRouteKey && routes && (
-        <RouteLine routes={routes} routeKey={selectedRouteKey} />
+      {selectedRouteKey && routesForLine && (
+        <RouteLine routes={routesForLine} routeKey={selectedRouteKey} showArrows={showArrows} />
+      )}
+      {recommendation && (
+        <BoardAlightMarkers
+          boardStop={recommendation.boardStop}
+          alightStop={recommendation.alightStop}
+        />
       )}
     </MapContainer>
   )

@@ -134,6 +134,11 @@ export const useFieldMapperStore = create<FieldMapperState>((set, get) => ({
       const { saveFieldLinks } = await import('../lib/fieldMapperApi')
       const result = await saveFieldLinks(sessionEntries)
       if (result.success) {
+        const { selectedRouteKey } = get()
+        if (selectedRouteKey) {
+          const { setRouteVerified } = await import('../lib/adminApi')
+          await setRouteVerified(selectedRouteKey, true)
+        }
         set({ saving: false, sessionEntries: [] })
         persistEntries([])
         return true

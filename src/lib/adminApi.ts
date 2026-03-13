@@ -58,6 +58,25 @@ export async function saveStopsToSupabase(
   return { success: true }
 }
 
+export async function loadVerifiedRoutes(): Promise<Set<string>> {
+  if (!supabase) return new Set()
+  const { data, error } = await supabase.rpc('get_verified_routes')
+  if (error || !data) return new Set()
+  return new Set(data as string[])
+}
+
+export async function setRouteVerified(
+  routeKey: string, isVerified: boolean
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase not configured' }
+  const { data, error } = await supabase.rpc('set_route_verified', {
+    secret: adminSecret, p_route_key: routeKey, p_is_verified: isVerified,
+  })
+  if (error) return { success: false, error: error.message }
+  if (data && !data.success) return { success: false, error: data.error }
+  return { success: true }
+}
+
 /** Load all stops data from Supabase in one round-trip, or null on failure/empty */
 export async function loadStopsFromSupabase(): Promise<{
   features: StopFeature[]

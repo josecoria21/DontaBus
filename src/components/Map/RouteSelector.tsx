@@ -86,15 +86,16 @@ export function RouteSelector() {
           // Clear button
           <button
             onClick={() => setSelectedRoute(null)}
-            className="flex-shrink-0 p-1 rounded-full hover:bg-slate-100 text-slate-400"
+            aria-label={t('clear_route_label')}
+            className="flex-shrink-0 p-2.5 rounded-full hover:bg-slate-100 text-slate-500"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
               <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
             </svg>
           </button>
         ) : (
           // Chevron icon
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 flex-shrink-0 text-slate-400 pointer-events-none">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 flex-shrink-0 text-slate-500 pointer-events-none">
             <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
           </svg>
         )}
@@ -109,7 +110,8 @@ export function RouteSelector() {
               <button
                 key={sib.properties.route_key}
                 onClick={() => setSelectedRoute(sib.properties.route_key)}
-                className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize transition-colors ${
+                aria-pressed={isActive}
+                className={`px-2.5 py-2 rounded-full text-sm font-medium capitalize transition-colors min-h-[44px] ${
                   isActive
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -130,7 +132,8 @@ export function RouteSelector() {
           </span>
           <button
             onClick={() => setSelectedRoute(null)}
-            className="ml-2 flex-shrink-0 p-1 rounded-full hover:bg-slate-100 text-slate-400"
+            aria-label={t('clear_route_label')}
+            className="ml-2 flex-shrink-0 p-2.5 rounded-full hover:bg-slate-100 text-slate-500"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />

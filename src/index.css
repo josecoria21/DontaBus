@@ -53,6 +53,18 @@ html, body, #root {
 }
 .animate-fade-in { animation: fade-in 0.15s ease-out; }
 
+/* Focus indicators for keyboard navigation */
+button:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Leaflet touch optimization */
+.leaflet-container {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
 /* Hide scrollbar but keep scroll */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

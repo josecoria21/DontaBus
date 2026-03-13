@@ -17,7 +17,7 @@ export function FieldMapperPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { position, accuracy, error: geoError, startWatching, locate } = useGeolocation()
-  const { routes, stops, loading } = useRouteData()
+  const { allRoutes: routes, stops, loading, retry } = useRouteData()
 
   const mode = useFieldMapperStore(s => s.mode)
   const sessionEntries = useFieldMapperStore(s => s.sessionEntries)
@@ -87,6 +87,7 @@ export function FieldMapperPage() {
     const ok = await saveEntriesToServer()
     if (ok) {
       reset()
+      retry()
     }
   }
 

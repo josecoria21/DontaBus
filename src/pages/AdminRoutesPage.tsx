@@ -117,97 +117,99 @@ export function AdminRoutesPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-[999] bg-slate-50 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-200 bg-white z-10">
-        <button
-          onClick={() => navigate('/admin/stops')}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-700">
-            <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
-          </svg>
-        </button>
-        <h1 className="font-semibold text-slate-800">{t('admin_routes_title')}</h1>
-        <span className="text-xs text-slate-400 ml-auto">
-          {allRoutes.length} {t('routes').toLowerCase()}
-        </span>
-      </div>
+    <>
+      <div className="fixed inset-0 z-[999] bg-slate-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-200 bg-white z-10">
+          <button
+            onClick={() => navigate('/admin/stops')}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-700">
+              <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <h1 className="font-semibold text-slate-800">{t('admin_routes_title')}</h1>
+          <span className="text-xs text-slate-400 ml-auto">
+            {allRoutes.length} {t('routes').toLowerCase()}
+          </span>
+        </div>
 
-      {/* Search */}
-      <div className="px-3 py-2 bg-white border-b border-slate-100">
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder={t('search_placeholder')}
-          className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
+        {/* Search */}
+        <div className="px-3 py-2 bg-white border-b border-slate-100">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t('search_placeholder')}
+            className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
 
-      {/* Route list */}
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="space-y-2 max-w-lg mx-auto">
-          {allRoutes.map(route => {
-            const p = route.properties
-            const isCustom = customRouteKeys.has(p.route_key)
-            const color = ROUTE_COLORS[p.route_type] || '#6366f1'
+        {/* Route list */}
+        <div className="flex-1 overflow-y-auto p-3">
+          <div className="space-y-2 max-w-lg mx-auto">
+            {allRoutes.map(route => {
+              const p = route.properties
+              const isCustom = customRouteKeys.has(p.route_key)
+              const color = ROUTE_COLORS[p.route_type] || '#6366f1'
 
-            return (
-              <div
-                key={p.route_key}
-                className={`flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border ${isCustom ? 'border-amber-200' : 'border-slate-100'}`}
-              >
-                {/* Color badge */}
+              return (
                 <div
-                  className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: color }}
+                  key={p.route_key}
+                  className={`flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border ${isCustom ? 'border-amber-200' : 'border-slate-100'}`}
                 >
-                  {p.route_num}
-                </div>
-
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-sm text-slate-800 truncate">
-                    {p.name}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-xs text-slate-400 capitalize">
-                      {t(`route_type_${p.route_type}`, { defaultValue: p.route_type })}
-                    </span>
-                    <span className="text-xs text-slate-300">·</span>
-                    <span className="text-xs text-slate-400 capitalize">
-                      {t(`direction_${p.direction}`, { defaultValue: p.direction })}
-                    </span>
-                    {isCustom && (
-                      <>
-                        <span className="text-xs text-slate-300">·</span>
-                        <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
-                          {t('admin_route_custom')}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Delete (custom only) */}
-                {isCustom && (
-                  <button
-                    onClick={() => handleDelete(p.route_key, p.route_num)}
-                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  {/* Color badge */}
+                  <div
+                    className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                    style={{ backgroundColor: color }}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                      <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            )
-          })}
+                    {p.route_num}
+                  </div>
+
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm text-slate-800 truncate">
+                      {p.name}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-slate-400 capitalize">
+                        {t(`route_type_${p.route_type}`, { defaultValue: p.route_type })}
+                      </span>
+                      <span className="text-xs text-slate-300">·</span>
+                      <span className="text-xs text-slate-400 capitalize">
+                        {t(`direction_${p.direction}`, { defaultValue: p.direction })}
+                      </span>
+                      {isCustom && (
+                        <>
+                          <span className="text-xs text-slate-300">·</span>
+                          <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
+                            {t('admin_route_custom')}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Delete (custom only) */}
+                  {isCustom && (
+                    <button
+                      onClick={() => handleDelete(p.route_key, p.route_num)}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Add route FAB */}
+      {/* Add route FAB — outside z-[999] container so it's not trapped in its stacking context */}
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
@@ -353,6 +355,6 @@ export function AdminRoutesPage() {
           </div>
         </>
       )}
-    </div>
+    </>
   )
 }

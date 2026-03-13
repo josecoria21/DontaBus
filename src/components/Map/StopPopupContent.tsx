@@ -25,10 +25,11 @@ export function StopPopupContent({ stopId, lat, lng, routeKeys, routes, onSelect
   const groups = useMemo(() => {
     const map = new Map<string, RouteGroup>()
     for (const rk of routeKeys) {
-      const groupKey = getRouteGroupKey({ route_key: rk })
       const feature = routes?.features.find((f) => f.properties.route_key === rk)
-      const direction = feature?.properties.direction ?? ''
-      const label = feature ? `${feature.properties.route_num} - ${feature.properties.name}` : rk
+      if (!feature) continue
+      const groupKey = getRouteGroupKey({ route_key: rk })
+      const direction = feature.properties.direction
+      const label = `${feature.properties.route_num} - ${feature.properties.name}`
 
       if (!map.has(groupKey)) {
         map.set(groupKey, { groupKey, label, keys: [] })
@@ -53,7 +54,7 @@ export function StopPopupContent({ stopId, lat, lng, routeKeys, routes, onSelect
           group.keys.length === 1 ? (
             <button
               key={group.keys[0].routeKey}
-              className="block w-full text-left text-xs px-2 py-1 rounded hover:bg-blue-50 text-blue-700 truncate"
+              className="block w-full text-left text-sm px-3 py-2 rounded hover:bg-blue-50 text-blue-700 truncate min-h-[44px]"
               onClick={() => onSelectRoute(group.keys[0].routeKey)}
             >
               {group.label}
@@ -65,7 +66,7 @@ export function StopPopupContent({ stopId, lat, lng, routeKeys, routes, onSelect
                 {group.keys.map(({ routeKey, direction }) => (
                   <button
                     key={routeKey}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 capitalize"
+                    className="text-xs px-2.5 py-1.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 capitalize min-h-[36px]"
                     onClick={() => onSelectRoute(routeKey)}
                   >
                     {t(`direction_${direction}`, { defaultValue: direction })}
@@ -77,7 +78,8 @@ export function StopPopupContent({ stopId, lat, lng, routeKeys, routes, onSelect
         )}
       </div>
       <button
-        className="mt-2 w-full flex items-center justify-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded py-1.5 transition-colors"
+        aria-label={t('get_directions_label')}
+        className="mt-2 w-full flex items-center justify-center gap-1 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded py-2.5 min-h-[44px] transition-colors"
         onClick={() => openWalkingDirections(lat, lng)}
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">

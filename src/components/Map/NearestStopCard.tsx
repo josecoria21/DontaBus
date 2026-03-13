@@ -21,11 +21,12 @@ export function NearestStopCard({ stopId, lat, lng, distance, userPosition }: Pr
         </svg>
         {t('nearest_stop')}
       </div>
-      <div className="text-xs text-gray-500 mb-2">
+      <div className="text-xs text-gray-600 mb-2">
         {t('stop_label', { id: stopId })} · {formatDistance(distance)}
       </div>
       <button
-        className="w-full flex items-center justify-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded py-1.5 transition-colors"
+        aria-label={t('walk_to_nearest_label')}
+        className="w-full flex items-center justify-center gap-1 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded py-2.5 min-h-[44px] transition-colors"
         onClick={() => openWalkingDirections(lat, lng, userPosition)}
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">

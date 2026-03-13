@@ -13,9 +13,10 @@ interface Props {
   userPosition?: { lat: number; lng: number } | null
   nearestStopId: number | null
   routeStopIds: Set<number> | null
+  verifiedRouteKeys: Set<string> | null
 }
 
-export function StopMarkers({ stops, stopRoutes, routes, userPosition, nearestStopId, routeStopIds }: Props) {
+export function StopMarkers({ stops, stopRoutes, routes, userPosition, nearestStopId, routeStopIds, verifiedRouteKeys }: Props) {
   const map = useMap()
   const [visible, setVisible] = useState(map.getZoom() >= STOPS_VISIBLE_ZOOM)
   const setSelectedRoute = useMapStore((s) => s.setSelectedRoute)
@@ -60,7 +61,10 @@ export function StopMarkers({ stops, stopRoutes, routes, userPosition, nearestSt
     // Skip the nearest stop — it's rendered separately on top
     if (isNearest) return null
 
-    const routeKeys = stopRoutes[String(stopId)] || []
+    const allRouteKeys = stopRoutes[String(stopId)] || []
+    const routeKeys = verifiedRouteKeys && verifiedRouteKeys.size > 0
+      ? allRouteKeys.filter(rk => verifiedRouteKeys.has(rk))
+      : allRouteKeys
 
     return (
       <CircleMarker
@@ -102,7 +106,10 @@ export function StopMarkers({ stops, stopRoutes, routes, userPosition, nearestSt
     if (!nearestStopFeature) return null
     const [lng, lat] = nearestStopFeature.geometry.coordinates
     const stopId = nearestStopFeature.properties.stop_id
-    const routeKeys = stopRoutes[String(stopId)] || []
+    const allRouteKeys = stopRoutes[String(stopId)] || []
+    const routeKeys = verifiedRouteKeys && verifiedRouteKeys.size > 0
+      ? allRouteKeys.filter(rk => verifiedRouteKeys.has(rk))
+      : allRouteKeys
 
     return (
       <CircleMarker

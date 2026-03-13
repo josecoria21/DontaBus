@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 p-6 text-center">
+        <div role="alert" className="flex flex-col items-center justify-center h-full gap-4 p-6 text-center">
           <div className="text-slate-600 text-lg font-medium">Something went wrong</div>
           <button
             onClick={() => window.location.reload()}

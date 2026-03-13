@@ -24,10 +24,11 @@ export function useFieldStopDetector({
   onStopDetected,
   enabled,
 }: DetectorParams) {
-  const cooldownRef = useRef(false)
+  const cooldownRef = useRef(0)
 
   useEffect(() => {
-    if (!enabled || !stops || !userPosition || !routeKey || cooldownRef.current) return
+    if (!enabled || !stops || !userPosition || !routeKey) return
+    if (Date.now() - cooldownRef.current < COOLDOWN_MS) return
 
     // Build set of stop_ids already linked this session for this route
     const linkedStopIds = new Set(
@@ -55,8 +56,7 @@ export function useFieldStopDetector({
 
     if (bestId !== null) {
       onStopDetected(bestId, bestDist)
-      cooldownRef.current = true
-      setTimeout(() => { cooldownRef.current = false }, COOLDOWN_MS)
+      cooldownRef.current = Date.now()
     }
   }, [enabled, stops, userPosition?.lat, userPosition?.lng, routeKey, dismissedStopIds, sessionEntries, onStopDetected])
 }

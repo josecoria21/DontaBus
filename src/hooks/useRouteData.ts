@@ -1,16 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { RoutesGeoJSON, StopsGeoJSON, RouteStopsData, StopRoutesData } from '../types'
-import { loadStopsFromSupabase } from '../lib/adminApi'
+import { loadStopsFromSupabase, loadVerifiedRoutes } from '../lib/adminApi'
 import { useRouteEditorStore } from '../store/routeEditorStore'
 
-// Temporary: hide all route lines while we clean the data. Stops are shown unfiltered.
-const HIDE_ALL_ROUTES = true
+async function fetchJSON<T>(url: string): Promise<T> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`)
+  return res.json() as Promise<T>
+}
 
 interface RouteData {
   routes: RoutesGeoJSON | null
+  allRoutes: RoutesGeoJSON | null
   stops: StopsGeoJSON | null
   routeStops: RouteStopsData | null
   stopRoutes: StopRoutesData | null
+  verifiedRouteKeys: Set<string> | null
   loading: boolean
   error: string | null
   retry: () => void
@@ -22,9 +27,11 @@ export function useRouteData(): RouteData {
   const customRoutes = useRouteEditorStore(s => s.customRoutes)
   const [data, setData] = useState<Omit<RouteData, 'retry'>>({
     routes: (cache.routes as RoutesGeoJSON) ?? null,
+    allRoutes: (cache.allRoutes as RoutesGeoJSON) ?? null,
     stops: (cache.stops as StopsGeoJSON) ?? null,
     routeStops: (cache.routeStops as RouteStopsData) ?? null,
     stopRoutes: (cache.stopRoutes as StopRoutesData) ?? null,
+    verifiedRouteKeys: (cache.verifiedRouteKeys as Set<string>) ?? null,
     loading: !cache.routes,
     error: null,
   })
@@ -33,21 +40,16 @@ export function useRouteData(): RouteData {
     setData(prev => ({ ...prev, loading: true, error: null }))
     try {
       // Always load routes from static (not edited via admin)
-      const routesRes = await fetch('/data/routes.geojson')
-      let routes = await routesRes.json() as RoutesGeoJSON
+      const allRoutes = await fetchJSON<RoutesGeoJSON>('/data/routes.geojson')
+      let routes = allRoutes
 
       // Load static files (always needed as fallback for route associations)
-      const [stopsRes, routeStopsRes, stopRoutesRes, supabaseData] = await Promise.all([
-        fetch('/data/stops.geojson'),
-        fetch('/data/route_stops.json'),
-        fetch('/data/stop_routes.json'),
+      const [staticStops, staticRouteStops, staticStopRoutes, supabaseData, verifiedRouteKeys] = await Promise.all([
+        fetchJSON<StopsGeoJSON>('/data/stops.geojson'),
+        fetchJSON<RouteStopsData>('/data/route_stops.json'),
+        fetchJSON<StopRoutesData>('/data/stop_routes.json'),
         loadStopsFromSupabase(),
-      ])
-
-      const [staticStops, staticRouteStops, staticStopRoutes] = await Promise.all([
-        stopsRes.json() as Promise<StopsGeoJSON>,
-        routeStopsRes.json() as Promise<RouteStopsData>,
-        stopRoutesRes.json() as Promise<StopRoutesData>,
+        loadVerifiedRoutes(),
       ])
 
       // Use Supabase stop positions when available (admin may have moved/merged stops)
@@ -66,17 +68,19 @@ export function useRouteData(): RouteData {
         }
       }
 
-      // Hide all route lines while cleaning data; stops remain unfiltered
-      if (HIDE_ALL_ROUTES) {
-        routes = { ...routes, features: [] }
+      // Filter to verified routes only (when at least one route is verified)
+      if (verifiedRouteKeys.size > 0) {
+        routes = { ...routes, features: routes.features.filter(f => verifiedRouteKeys.has(f.properties.route_key)) }
       }
 
       cache.routes = routes
+      cache.allRoutes = allRoutes
       cache.stops = stops
       cache.routeStops = routeStops
       cache.stopRoutes = stopRoutes
+      cache.verifiedRouteKeys = verifiedRouteKeys
 
-      setData({ routes, stops, routeStops, stopRoutes, loading: false, error: null })
+      setData({ routes, allRoutes, stops, routeStops, stopRoutes, verifiedRouteKeys, loading: false, error: null })
     } catch (err) {
       setData(prev => ({ ...prev, loading: false, error: (err as Error).message }))
     }
@@ -84,9 +88,11 @@ export function useRouteData(): RouteData {
 
   const retry = useCallback(() => {
     cache.routes = undefined
+    cache.allRoutes = undefined
     cache.stops = undefined
     cache.routeStops = undefined
     cache.stopRoutes = undefined
+    cache.verifiedRouteKeys = undefined
     load()
   }, [load])
 
