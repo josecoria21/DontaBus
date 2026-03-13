@@ -13,6 +13,8 @@ export interface RouteProperties {
   route_type: 'circuito' | 'ruta' | 'circuito_alterno'
   direction: string
   name: string
+  vehicle_type: 'autobus' | 'combi' | null
+  image_url: string | null
   description: string | null
   notes: string | null
   peak_am: number | null

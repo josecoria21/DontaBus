@@ -17,7 +17,7 @@ function persistToStorage(routes: RouteFeature[]) {
   } catch { /* ignore */ }
 }
 
-function buildRouteKey(routeNum: string, direction: string): string {
+export function buildRouteKey(routeNum: string, direction: string): string {
   const slug = routeNum.trim().toLowerCase().replace(/\s+/g, '_')
   const dir = direction.trim().toLowerCase().replace(/\s+/g, '_')
   return `${slug}__${dir}`
@@ -31,15 +31,17 @@ interface RouteEditorState {
     name: string
     route_type: RouteProperties['route_type']
     direction: string
+    vehicle_type: RouteProperties['vehicle_type']
   }) => string | null // returns route_key or null if duplicate
-  editRoute: (routeKey: string, props: Partial<Pick<RouteProperties, 'name' | 'route_type' | 'direction' | 'route_num'>>) => void
+  editRoute: (routeKey: string, props: Partial<Pick<RouteProperties, 'name' | 'route_type' | 'direction' | 'route_num' | 'vehicle_type' | 'image_url'>>) => void
+  importRoute: (feature: RouteFeature) => void
   deleteRoute: (routeKey: string) => void
 }
 
 export const useRouteEditorStore = create<RouteEditorState>((set, get) => ({
   customRoutes: loadFromStorage(),
 
-  addRoute: ({ route_num, name, route_type, direction }) => {
+  addRoute: ({ route_num, name, route_type, direction, vehicle_type }) => {
     const routeKey = buildRouteKey(route_num, direction)
     const { customRoutes } = get()
     if (customRoutes.some(r => r.properties.route_key === routeKey)) {
@@ -53,6 +55,8 @@ export const useRouteEditorStore = create<RouteEditorState>((set, get) => ({
         route_type,
         direction: direction.trim().toLowerCase().replace(/\s+/g, '_'),
         name: name.trim(),
+        vehicle_type,
+        image_url: null,
         description: null,
         notes: null,
         peak_am: null,
@@ -80,12 +84,22 @@ export const useRouteEditorStore = create<RouteEditorState>((set, get) => ({
       if (props.name !== undefined) newProps.name = props.name.trim()
       if (props.route_type !== undefined) newProps.route_type = props.route_type
       if (props.direction !== undefined) newProps.direction = props.direction.trim().toLowerCase().replace(/\s+/g, '_')
+      if (props.vehicle_type !== undefined) newProps.vehicle_type = props.vehicle_type
+      if (props.image_url !== undefined) newProps.image_url = props.image_url
       // Recompute route_key if num or direction changed
       if (props.route_num !== undefined || props.direction !== undefined) {
         newProps.route_key = buildRouteKey(newProps.route_num, newProps.direction)
       }
       return { ...r, properties: newProps }
     })
+    persistToStorage(updated)
+    set({ customRoutes: updated })
+  },
+
+  importRoute: (feature) => {
+    const { customRoutes } = get()
+    if (customRoutes.some(r => r.properties.route_key === feature.properties.route_key)) return
+    const updated = [...customRoutes, feature]
     persistToStorage(updated)
     set({ customRoutes: updated })
   },

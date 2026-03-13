@@ -80,7 +80,7 @@ export async function setRouteVerified(
 /** Load routes from Supabase */
 export async function loadRoutesFromSupabase(): Promise<RouteFeature[]> {
   if (!supabase) return []
-  const { data, error } = await supabase.from('routes').select('route_key, route_num, route_type, direction, name')
+  const { data, error } = await supabase.from('routes').select('route_key, route_num, route_type, direction, name, vehicle_type, image_url')
   if (error || !data) return []
   return data.map(r => ({
     type: 'Feature' as const,
@@ -90,6 +90,8 @@ export async function loadRoutesFromSupabase(): Promise<RouteFeature[]> {
       route_type: r.route_type,
       direction: r.direction,
       name: r.name,
+      vehicle_type: r.vehicle_type || null,
+      image_url: r.image_url || null,
       description: null,
       notes: null,
       peak_am: null,
@@ -113,6 +115,8 @@ export async function syncRoutesToSupabase(
     route_type: r.properties.route_type,
     direction: r.properties.direction,
     name: r.properties.name,
+    vehicle_type: r.properties.vehicle_type,
+    image_url: r.properties.image_url,
   }))
 
   const { data, error } = await supabase.rpc('save_routes_data', {

@@ -136,5 +136,15 @@
   "clear_destination_label": "Quitar destino",
   "walk_to_nearest_label": "Caminar a la parada más cercana",
   "get_directions_label": "Obtener indicaciones a pie",
-  "admin_add_route_to_stop": "Agregar ruta a parada"
+  "admin_add_route_to_stop": "Agregar ruta a parada",
+  "admin_vehicle_type": "Tipo de vehiculo",
+  "vehicle_type_autobus": "Autobus",
+  "vehicle_type_combi": "Combi",
+  "admin_route_edit": "Editar ruta",
+  "admin_route_save": "Guardar",
+  "admin_route_image": "Foto de la ruta",
+  "admin_route_image_pick": "Elegir foto",
+  "admin_route_image_remove": "Quitar foto",
+  "admin_image_upload_error": "Error al subir la imagen",
+  "admin_image_uploading": "Subiendo..."
 }

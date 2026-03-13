@@ -1,13 +1,15 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useRouteData } from '../hooks/useRouteData'
-import { useRouteEditorStore } from '../store/routeEditorStore'
+import { useRouteEditorStore, buildRouteKey } from '../store/routeEditorStore'
 import { syncRoutesToSupabase } from '../lib/adminApi'
+import { uploadRouteImage } from '../lib/imageUpload'
 import { ROUTE_COLORS } from '../lib/constants'
 import type { RouteProperties } from '../types'
 
 const ROUTE_TYPES: RouteProperties['route_type'][] = ['ruta', 'circuito', 'circuito_alterno']
+const VEHICLE_TYPES: NonNullable<RouteProperties['vehicle_type']>[] = ['autobus', 'combi']
 
 const DIRECTION_PRESETS = ['ida', 'vuelta', 'principal', 'ruta_1', 'ruta_2', 'variant_1', 'variant_2']
 
@@ -17,6 +19,8 @@ export function AdminRoutesPage() {
   const { routes, loading } = useRouteData()
   const customRoutes = useRouteEditorStore(s => s.customRoutes)
   const addRoute = useRouteEditorStore(s => s.addRoute)
+  const editRoute = useRouteEditorStore(s => s.editRoute)
+  const importRoute = useRouteEditorStore(s => s.importRoute)
   const deleteRoute = useRouteEditorStore(s => s.deleteRoute)
 
   const [showForm, setShowForm] = useState(false)
@@ -31,6 +35,16 @@ export function AdminRoutesPage() {
   const [routeType, setRouteType] = useState<RouteProperties['route_type']>('ruta')
   const [direction, setDirection] = useState('ida')
   const [customDirection, setCustomDirection] = useState('')
+  const [vehicleType, setVehicleType] = useState<NonNullable<RouteProperties['vehicle_type']>>('autobus')
+
+  // Edit mode
+  const [editingRouteKey, setEditingRouteKey] = useState<string | null>(null)
+
+  // Image upload
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const customRouteKeys = useMemo(
     () => new Set(customRoutes.map(r => r.properties.route_key)),
@@ -69,10 +83,62 @@ export function AdminRoutesPage() {
     setRouteType('ruta')
     setDirection('ida')
     setCustomDirection('')
+    setVehicleType('autobus')
+    setEditingRouteKey(null)
+    setImageFile(null)
+    setImagePreview(null)
     setError(null)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleEditClick(routeKey: string) {
+    // Find from all routes (custom or server)
+    const route = allRoutes.find(r => r.properties.route_key === routeKey)
+    if (!route) return
+
+    // If it's not already custom, import it into the local store
+    if (!customRouteKeys.has(routeKey)) {
+      importRoute(route)
+    }
+
+    const p = route.properties
+    setRouteNum(p.route_num)
+    setRouteName(p.name)
+    setRouteType(p.route_type)
+    setVehicleType(p.vehicle_type || 'autobus')
+
+    // Direction: check if it matches a preset
+    if (DIRECTION_PRESETS.includes(p.direction)) {
+      setDirection(p.direction)
+      setCustomDirection('')
+    } else {
+      setDirection('_custom')
+      setCustomDirection(p.direction)
+    }
+
+    // Image
+    setImageFile(null)
+    setImagePreview(p.image_url || null)
+
+    setEditingRouteKey(routeKey)
+    setError(null)
+    setShowForm(true)
+  }
+
+  function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    const url = URL.createObjectURL(file)
+    setImagePreview(url)
+  }
+
+  function handleImageRemove() {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
@@ -89,16 +155,53 @@ export function AdminRoutesPage() {
       return
     }
 
-    const result = addRoute({
-      route_num: num,
-      name,
-      route_type: routeType,
-      direction: dir,
-    })
+    // Upload image if a new file was picked
+    let imageUrl: string | null | undefined = undefined
+    if (imageFile) {
+      setUploading(true)
+      const key = editingRouteKey || buildRouteKey(num, dir)
+      const url = await uploadRouteImage(key, imageFile)
+      setUploading(false)
+      if (!url) {
+        setError(t('admin_image_upload_error'))
+        return
+      }
+      imageUrl = url
+    } else if (imagePreview === null && editingRouteKey) {
+      // User removed existing image
+      imageUrl = null
+    }
 
-    if (result === null) {
-      setError(t('admin_route_duplicate'))
-      return
+    if (editingRouteKey) {
+      // Edit mode
+      const updates: Parameters<typeof editRoute>[1] = {
+        route_num: num,
+        name,
+        route_type: routeType,
+        direction: dir,
+        vehicle_type: vehicleType,
+      }
+      if (imageUrl !== undefined) updates.image_url = imageUrl
+      editRoute(editingRouteKey, updates)
+    } else {
+      // Add mode
+      const result = addRoute({
+        route_num: num,
+        name,
+        route_type: routeType,
+        direction: dir,
+        vehicle_type: vehicleType,
+      })
+
+      if (result === null) {
+        setError(t('admin_route_duplicate'))
+        return
+      }
+
+      // If image was uploaded, attach it to the newly created route
+      if (imageUrl) {
+        editRoute(result, { image_url: imageUrl })
+      }
     }
 
     resetForm()
@@ -210,12 +313,21 @@ export function AdminRoutesPage() {
                   key={p.route_key}
                   className={`flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm border ${isCustom ? 'border-amber-200' : 'border-slate-100'}`}
                 >
-                  {/* Color badge */}
+                  {/* Color badge / image */}
                   <div
-                    className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                    className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm overflow-hidden relative"
                     style={{ backgroundColor: color }}
                   >
-                    {p.route_num}
+                    {p.image_url && (
+                      <img
+                        src={p.image_url}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    )}
+                    <span className={p.image_url ? 'relative z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : ''}>
+                      {p.route_num}
+                    </span>
                   </div>
 
                   {/* Info */}
@@ -223,7 +335,7 @@ export function AdminRoutesPage() {
                     <div className="font-medium text-sm text-slate-800 truncate">
                       {p.name}
                     </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <span className="text-xs text-slate-400 capitalize">
                         {t(`route_type_${p.route_type}`, { defaultValue: p.route_type })}
                       </span>
@@ -231,6 +343,14 @@ export function AdminRoutesPage() {
                       <span className="text-xs text-slate-400 capitalize">
                         {t(`direction_${p.direction}`, { defaultValue: p.direction })}
                       </span>
+                      {p.vehicle_type && (
+                        <>
+                          <span className="text-xs text-slate-300">·</span>
+                          <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full capitalize">
+                            {t(`vehicle_type_${p.vehicle_type}`, { defaultValue: p.vehicle_type })}
+                          </span>
+                        </>
+                      )}
                       {isCustom && (
                         <>
                           <span className="text-xs text-slate-300">·</span>
@@ -242,17 +362,28 @@ export function AdminRoutesPage() {
                     </div>
                   </div>
 
-                  {/* Delete (custom only) */}
-                  {isCustom && (
+                  {/* Edit (all routes) + Delete (custom only) */}
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleDelete(p.route_key, p.route_num)}
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      onClick={() => handleEditClick(p.route_key)}
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                        <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+                        <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                        <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25h5.5a.75.75 0 0 0 0-1.5h-5.5A2.75 2.75 0 0 0 2 5.75v8.5A2.75 2.75 0 0 0 4.75 17h8.5A2.75 2.75 0 0 0 16 14.25v-5.5a.75.75 0 0 0-1.5 0v5.5c0 .69-.56 1.25-1.25 1.25h-8.5c-.69 0-1.25-.56-1.25-1.25v-8.5Z" />
                       </svg>
                     </button>
-                  )}
+                    {isCustom && (
+                      <button
+                        onClick={() => handleDelete(p.route_key, p.route_num)}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                          <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -260,7 +391,7 @@ export function AdminRoutesPage() {
         </div>
       </div>
 
-      {/* Add route FAB — outside z-[999] container so it's not trapped in its stacking context */}
+      {/* Add route FAB */}
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
@@ -272,7 +403,7 @@ export function AdminRoutesPage() {
         </button>
       )}
 
-      {/* Add route form (slide-up sheet) */}
+      {/* Add/Edit route form (slide-up sheet) */}
       {showForm && (
         <>
           {/* Backdrop */}
@@ -283,11 +414,13 @@ export function AdminRoutesPage() {
 
           {/* Form sheet */}
           <div className="fixed bottom-0 left-0 right-0 z-[1002] bg-white rounded-t-2xl shadow-2xl animate-slide-up safe-area-bottom">
-            <div className="p-4 max-w-lg mx-auto">
+            <div className="p-4 max-w-lg mx-auto max-h-[80vh] overflow-y-auto">
               {/* Handle */}
               <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
 
-              <h2 className="font-semibold text-slate-800 mb-4">{t('admin_route_add')}</h2>
+              <h2 className="font-semibold text-slate-800 mb-4">
+                {editingRouteKey ? t('admin_route_edit') : t('admin_route_add')}
+              </h2>
 
               <form onSubmit={handleSubmit} className="space-y-3">
                 {/* Route number */}
@@ -337,6 +470,27 @@ export function AdminRoutesPage() {
                   </div>
                 </div>
 
+                {/* Vehicle type */}
+                <div>
+                  <label className="text-xs text-slate-500 font-medium">{t('admin_vehicle_type')}</label>
+                  <div className="flex gap-2 mt-1">
+                    {VEHICLE_TYPES.map(vt => (
+                      <button
+                        key={vt}
+                        type="button"
+                        onClick={() => setVehicleType(vt)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          vehicleType === vt
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {t(`vehicle_type_${vt}`, { defaultValue: vt })}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Direction */}
                 <div>
                   <label className="text-xs text-slate-500 font-medium">{t('direction')}</label>
@@ -378,6 +532,44 @@ export function AdminRoutesPage() {
                   )}
                 </div>
 
+                {/* Image upload */}
+                <div>
+                  <label className="text-xs text-slate-500 font-medium">{t('admin_route_image')}</label>
+                  <div className="mt-1">
+                    {imagePreview ? (
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={imagePreview}
+                          alt=""
+                          className="w-16 h-16 rounded-lg object-cover border border-slate-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleImageRemove}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        >
+                          {t('admin_route_image_remove')}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3 py-2 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200 transition-colors"
+                      >
+                        {t('admin_route_image_pick')}
+                      </button>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImagePick}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
                 {/* Error */}
                 {error && (
                   <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
@@ -396,9 +588,19 @@ export function AdminRoutesPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-medium active:bg-blue-700 transition-colors"
+                    disabled={uploading}
+                    className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-medium active:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                   >
-                    {t('admin_route_add')}
+                    {uploading ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70" />
+                        </svg>
+                        {t('admin_image_uploading')}
+                      </>
+                    ) : (
+                      editingRouteKey ? t('admin_route_save') : t('admin_route_add')
+                    )}
                   </button>
                 </div>
               </form>

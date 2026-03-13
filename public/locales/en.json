@@ -136,5 +136,15 @@
   "clear_destination_label": "Clear destination",
   "walk_to_nearest_label": "Walk to nearest stop",
   "get_directions_label": "Get walking directions",
-  "admin_add_route_to_stop": "Add route to stop"
+  "admin_add_route_to_stop": "Add route to stop",
+  "admin_vehicle_type": "Vehicle type",
+  "vehicle_type_autobus": "Bus",
+  "vehicle_type_combi": "Combi",
+  "admin_route_edit": "Edit route",
+  "admin_route_save": "Save",
+  "admin_route_image": "Route photo",
+  "admin_route_image_pick": "Choose photo",
+  "admin_route_image_remove": "Remove photo",
+  "admin_image_upload_error": "Failed to upload image",
+  "admin_image_uploading": "Uploading..."
 }
