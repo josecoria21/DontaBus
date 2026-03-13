@@ -135,5 +135,6 @@
   "walk_to_stop_label": "Walk to boarding stop",
   "clear_destination_label": "Clear destination",
   "walk_to_nearest_label": "Walk to nearest stop",
-  "get_directions_label": "Get walking directions"
+  "get_directions_label": "Get walking directions",
+  "admin_add_route_to_stop": "Add route to stop"
 }

@@ -135,5 +135,6 @@
   "walk_to_stop_label": "Caminar a la parada de abordaje",
   "clear_destination_label": "Quitar destino",
   "walk_to_nearest_label": "Caminar a la parada más cercana",
-  "get_directions_label": "Obtener indicaciones a pie"
+  "get_directions_label": "Obtener indicaciones a pie",
+  "admin_add_route_to_stop": "Agregar ruta a parada"
 }

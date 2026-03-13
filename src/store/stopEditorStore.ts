@@ -50,6 +50,8 @@ interface StopEditorState {
   toStopRoutesJSON: () => StopRoutesData
   toRouteStopsJSON: () => RouteStopsData
   saveToServer: () => Promise<boolean>
+  linkRouteToStop: (stopId: number, routeKey: string) => void
+  unlinkRouteFromStop: (stopId: number, routeKey: string) => void
   startMerge: () => void
   toggleMergeSource: (stopId: number) => void
   cancelMerge: () => void
@@ -301,6 +303,74 @@ export const useStopEditorStore = create<StopEditorState>((set, get) => ({
       set({ saving: false, lastSaveError: (err as Error).message })
       return false
     }
+  },
+
+  linkRouteToStop: (stopId, routeKey) => {
+    const { features, stopRoutes, routeStops, history, historyIndex } = get()
+    const key = String(stopId)
+    const newSR = cloneStopRoutes(stopRoutes)
+    const newRS = cloneRouteStops(routeStops)
+
+    // Add to stopRoutes if not already there
+    if (!newSR[key]) newSR[key] = []
+    if (newSR[key].includes(routeKey)) return
+    newSR[key] = [...newSR[key], routeKey]
+
+    // Add to routeStops
+    if (!newRS[routeKey]) newRS[routeKey] = []
+    if (!newRS[routeKey].some(e => e.stop_id === stopId)) {
+      const seq = newRS[routeKey].length
+      newRS[routeKey] = [...newRS[routeKey], { stop_id: stopId, sequence: seq, travel_time: 0, dwell_time: 0 }]
+    }
+
+    // Update num_routes on the feature
+    const updated = features.map(f =>
+      f.properties.stop_id === stopId
+        ? { ...f, properties: { ...f.properties, num_routes: newSR[key].length } }
+        : f
+    )
+
+    const snapshot = { features: updated, stopRoutes: newSR, routeStops: newRS }
+    set({
+      features: updated,
+      stopRoutes: newSR,
+      routeStops: newRS,
+      isDirty: true,
+      ...pushHistory(history, historyIndex, snapshot),
+    })
+  },
+
+  unlinkRouteFromStop: (stopId, routeKey) => {
+    const { features, stopRoutes, routeStops, history, historyIndex } = get()
+    const key = String(stopId)
+    const newSR = cloneStopRoutes(stopRoutes)
+    const newRS = cloneRouteStops(routeStops)
+
+    // Remove from stopRoutes
+    if (newSR[key]) {
+      newSR[key] = newSR[key].filter(rk => rk !== routeKey)
+    }
+
+    // Remove from routeStops
+    if (newRS[routeKey]) {
+      newRS[routeKey] = newRS[routeKey].filter(e => e.stop_id !== stopId)
+    }
+
+    // Update num_routes on the feature
+    const updated = features.map(f =>
+      f.properties.stop_id === stopId
+        ? { ...f, properties: { ...f.properties, num_routes: (newSR[key] || []).length } }
+        : f
+    )
+
+    const snapshot = { features: updated, stopRoutes: newSR, routeStops: newRS }
+    set({
+      features: updated,
+      stopRoutes: newSR,
+      routeStops: newRS,
+      isDirty: true,
+      ...pushHistory(history, historyIndex, snapshot),
+    })
   },
 
   startMerge: () => {
