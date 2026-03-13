@@ -63,61 +63,63 @@ export function AdminStopsPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-[999] bg-white">
-      {/* Back button */}
-      <button
-        onClick={() => navigate('/')}
-        className="absolute top-3 left-3 z-[1001] bg-white/95 backdrop-blur rounded-lg shadow-md p-2 hover:bg-slate-100 transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-700">
-          <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
-        </svg>
-      </button>
+    <>
+      <div className="fixed inset-0 z-[999] bg-white">
+        {/* Back button */}
+        <button
+          onClick={() => navigate('/')}
+          className="absolute top-3 left-3 z-[1001] bg-white/95 backdrop-blur rounded-lg shadow-md p-2 hover:bg-slate-100 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-slate-700">
+            <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
+          </svg>
+        </button>
 
-      {/* Field mapper link — desktop only, on mobile it's in the overflow menu */}
-      <button
-        onClick={() => navigate('/admin/field-mapper')}
-        className="hidden sm:block absolute bottom-20 left-3 z-[1001] bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl shadow-lg px-4 py-3 text-sm font-semibold transition-colors"
-      >
-        {t('field_title')}
-      </button>
+        {/* Field mapper link — desktop only, on mobile it's in the overflow menu */}
+        <button
+          onClick={() => navigate('/admin/field-mapper')}
+          className="hidden sm:block absolute bottom-20 left-3 z-[1001] bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl shadow-lg px-4 py-3 text-sm font-semibold transition-colors"
+        >
+          {t('field_title')}
+        </button>
 
-      {/* Route editor link — desktop only, on mobile it's in the overflow menu */}
-      <button
-        onClick={() => navigate('/admin/routes')}
-        className="hidden sm:block absolute bottom-20 left-44 z-[1001] bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl shadow-lg px-4 py-3 text-sm font-semibold transition-colors"
-      >
-        {t('admin_routes_title')}
-      </button>
+        {/* Route editor link — desktop only, on mobile it's in the overflow menu */}
+        <button
+          onClick={() => navigate('/admin/routes')}
+          className="hidden sm:block absolute bottom-20 left-44 z-[1001] bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl shadow-lg px-4 py-3 text-sm font-semibold transition-colors"
+        >
+          {t('admin_routes_title')}
+        </button>
 
-      <EditorToolbar satellite={satellite} onToggleSatellite={() => setSatellite(s => !s)} dataSource={source} />
+        <EditorToolbar satellite={satellite} onToggleSatellite={() => setSatellite(s => !s)} dataSource={source} />
 
-      <MapContainer
-        center={XALAPA_CENTER}
-        zoom={15}
-        minZoom={11}
-        maxZoom={19}
-        className="h-full w-full"
-        zoomControl={false}
-      >
-        <TileLayer
-          key={satellite ? 'sat' : 'osm'}
-          url={satellite ? SATELLITE_URL : OSM_URL}
-          attribution={satellite ? '&copy; Esri' : '&copy; OpenStreetMap'}
+        <MapContainer
+          center={XALAPA_CENTER}
+          zoom={15}
+          minZoom={11}
           maxZoom={19}
-        />
-        <EditorMarkers />
-        <GeocoderControl />
-        <MapClickHandler />
-        {position && (
-          <UserLocationMarker position={position} accuracy={accuracy} flyTo={flyToUser} />
-        )}
-      </MapContainer>
+          className="h-full w-full"
+          zoomControl={false}
+        >
+          <TileLayer
+            key={satellite ? 'sat' : 'osm'}
+            url={satellite ? SATELLITE_URL : OSM_URL}
+            attribution={satellite ? '&copy; Esri' : '&copy; OpenStreetMap'}
+            maxZoom={19}
+          />
+          <EditorMarkers />
+          <GeocoderControl />
+          <MapClickHandler />
+          {position && (
+            <UserLocationMarker position={position} accuracy={accuracy} flyTo={flyToUser} />
+          )}
+        </MapContainer>
 
-      <LocateButton onClick={handleLocate} loading={geoLoading} active={!!position} className="absolute bottom-36 sm:bottom-24 right-3" />
+        <LocateButton onClick={handleLocate} loading={geoLoading} active={!!position} className="absolute bottom-36 sm:bottom-24 right-3" />
+      </div>
 
       <StopInfoPanel />
       {mergeMode && <MergePanel />}
-    </div>
+    </>
   )
 }
