@@ -115,10 +115,12 @@ export function AdminRoutesPage() {
     if (customRoutes.length === 0 || syncing) return
     setSyncing(true)
     setSyncStatus('idle')
+    setError(null)
     const result = await syncRoutesToSupabase(customRoutes)
     setSyncing(false)
     setSyncStatus(result.success ? 'success' : 'error')
-    setTimeout(() => setSyncStatus('idle'), 3000)
+    if (!result.success) setError(result.error || 'Unknown error')
+    setTimeout(() => setSyncStatus('idle'), 5000)
   }
 
   if (loading) {
@@ -172,6 +174,13 @@ export function AdminRoutesPage() {
             </button>
           )}
         </div>
+
+        {/* Sync error */}
+        {error && syncStatus === 'error' && (
+          <div className="px-3 py-2 bg-red-50 border-b border-red-200 text-xs text-red-700">
+            {error}
+          </div>
+        )}
 
         {/* Search */}
         <div className="px-3 py-2 bg-white border-b border-slate-100">
