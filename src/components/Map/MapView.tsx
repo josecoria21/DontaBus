@@ -25,6 +25,7 @@ function FlyToRoute({ routes }: { routes: RoutesGeoJSON | null }) {
     )
     if (!feature) return
     const coords = feature.geometry.coordinates
+    if (coords.length === 0) return
     const lats = coords.map((c) => c[1])
     const lngs = coords.map((c) => c[0])
     map.fitBounds([
