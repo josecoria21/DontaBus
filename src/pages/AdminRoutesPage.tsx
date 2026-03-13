@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useRouteData } from '../hooks/useRouteData'
 import { useRouteEditorStore } from '../store/routeEditorStore'
+import { syncRoutesToSupabase } from '../lib/adminApi'
 import { ROUTE_COLORS } from '../lib/constants'
 import type { RouteProperties } from '../types'
 
@@ -21,6 +22,8 @@ export function AdminRoutesPage() {
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
   // Form state
   const [routeNum, setRouteNum] = useState('')
@@ -108,6 +111,16 @@ export function AdminRoutesPage() {
     }
   }
 
+  async function handleSync() {
+    if (customRoutes.length === 0 || syncing) return
+    setSyncing(true)
+    setSyncStatus('idle')
+    const result = await syncRoutesToSupabase(customRoutes)
+    setSyncing(false)
+    setSyncStatus(result.success ? 'success' : 'error')
+    setTimeout(() => setSyncStatus('idle'), 3000)
+  }
+
   if (loading) {
     return (
       <div className="fixed inset-0 z-[999] bg-white flex items-center justify-center">
@@ -130,9 +143,34 @@ export function AdminRoutesPage() {
             </svg>
           </button>
           <h1 className="font-semibold text-slate-800">{t('admin_routes_title')}</h1>
-          <span className="text-xs text-slate-400 ml-auto">
+          <span className="text-xs text-slate-400 ml-auto mr-2">
             {allRoutes.length} {t('routes').toLowerCase()}
           </span>
+          {customRoutes.length > 0 && (
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                syncStatus === 'success'
+                  ? 'bg-green-100 text-green-700'
+                  : syncStatus === 'error'
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-blue-100 text-blue-700 active:bg-blue-200'
+              }`}
+            >
+              {syncing ? (
+                <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" />
+                  <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
+                </svg>
+              )}
+              {syncing ? t('admin_syncing') : syncStatus === 'success' ? t('admin_sync_done') : syncStatus === 'error' ? t('admin_sync_error') : t('admin_sync')}
+            </button>
+          )}
         </div>
 
         {/* Search */}

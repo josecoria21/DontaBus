@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { StopFeature, StopRoutesData, RouteStopsData, RouteStopEntry } from '../types'
+import type { StopFeature, StopRoutesData, RouteStopsData, RouteStopEntry, RouteFeature } from '../types'
 
 const adminSecret = import.meta.env.VITE_ADMIN_SECRET || ''
 
@@ -72,6 +72,30 @@ export async function setRouteVerified(
   const { data, error } = await supabase.rpc('set_route_verified', {
     secret: adminSecret, p_route_key: routeKey, p_is_verified: isVerified,
   })
+  if (error) return { success: false, error: error.message }
+  if (data && !data.success) return { success: false, error: data.error }
+  return { success: true }
+}
+
+/** Sync custom routes to Supabase (upsert) */
+export async function syncRoutesToSupabase(
+  routes: RouteFeature[]
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) return { success: false, error: 'Supabase not configured' }
+
+  const routesJson = routes.map(r => ({
+    route_key: r.properties.route_key,
+    route_num: r.properties.route_num,
+    route_type: r.properties.route_type,
+    direction: r.properties.direction,
+    name: r.properties.name,
+  }))
+
+  const { data, error } = await supabase.rpc('save_routes_data', {
+    secret: adminSecret,
+    routes_json: routesJson,
+  })
+
   if (error) return { success: false, error: error.message }
   if (data && !data.success) return { success: false, error: data.error }
   return { success: true }
