@@ -5,7 +5,6 @@ import { useRouteData } from '../hooks/useRouteData'
 import { useMapStore } from '../store/mapStore'
 import { ROUTE_COLORS } from '../lib/constants'
 import { getSiblingRoutes } from '../lib/routeGrouping'
-import { BusImage } from '../components/BusImage'
 
 export function RouteDetailPage() {
   const { routeKey } = useParams<{ routeKey: string }>()
@@ -127,15 +126,6 @@ export function RouteDetailPage() {
               </p>
             )}
           </div>
-        </div>
-
-        {/* Bus photo */}
-        <div className="rounded-lg overflow-hidden mb-4">
-          <BusImage
-            routeNum={p.route_num}
-            alt={t('bus_photo_alt', { num: p.route_num })}
-            className="w-full h-48 sm:h-56"
-          />
         </div>
 
         {/* View on map */}

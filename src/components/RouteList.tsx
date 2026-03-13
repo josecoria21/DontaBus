@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ROUTE_COLORS } from '../lib/constants'
 import { getRouteGroupKey } from '../lib/routeGrouping'
-import { BusImage } from './BusImage'
 import type { RouteFeature } from '../types'
 
 interface Props {
@@ -94,18 +93,11 @@ export function RouteList({ routes, searchQuery }: Props) {
                 className="w-full text-left flex items-center gap-3 p-3 rounded-lg bg-white shadow-sm border border-slate-100/50 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer"
                 onClick={() => navigate(`/routes/${encodeURIComponent(p.route_key)}`)}
               >
-                <div className="relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-slate-100">
-                  <BusImage
-                    routeNum={p.route_num}
-                    alt={t('bus_photo_alt', { num: p.route_num })}
-                    className="w-full h-full"
-                  />
-                  <span
-                    className="absolute bottom-0 left-0 right-0 text-center text-white text-[10px] font-bold py-0.5"
-                    style={{ backgroundColor: color }}
-                  >
-                    {p.route_num}
-                  </span>
+                <div
+                  className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                  style={{ backgroundColor: color }}
+                >
+                  {p.route_num}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-sm text-slate-800 truncate">
