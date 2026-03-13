@@ -11,6 +11,8 @@ function makeFeature(routeKey: string, direction: string): RouteFeature {
       route_type: 'ruta',
       direction,
       name: 'Test',
+      vehicle_type: null,
+      image_url: null,
       description: null,
       notes: null,
       peak_am: null,
