@@ -6,7 +6,6 @@ import { useRouteEditorStore, buildRouteKey } from '../store/routeEditorStore'
 import { syncRoutesToSupabase } from '../lib/adminApi'
 import { uploadRouteImage } from '../lib/imageUpload'
 import { ROUTE_COLORS } from '../lib/constants'
-import { getRouteGroupKey } from '../lib/routeGrouping'
 import type { RouteProperties } from '../types'
 
 const ROUTE_TYPES: RouteProperties['route_type'][] = ['ruta', 'circuito', 'circuito_alterno']
