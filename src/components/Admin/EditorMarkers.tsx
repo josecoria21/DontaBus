@@ -3,15 +3,17 @@ import L from 'leaflet'
 import { useMap } from 'react-leaflet'
 import { useStopEditorStore } from '../../store/stopEditorStore'
 
-function makeIcon(selected: boolean) {
+function makeIcon(selected: boolean, userAdded: boolean = false) {
+  const bg = selected ? '#f97316' : userAdded ? '#a855f7' : '#2563eb'
+  const border = selected ? (userAdded ? '#7e22ce' : '#ea580c') : userAdded ? '#7e22ce' : '#1d4ed8'
   return L.divIcon({
     className: '',
     iconSize: [14, 14],
     iconAnchor: [7, 7],
     html: `<div style="
       width:14px;height:14px;border-radius:50%;
-      background:${selected ? '#f97316' : '#2563eb'};
-      border:2px solid ${selected ? '#ea580c' : '#1d4ed8'};
+      background:${bg};
+      border:2px solid ${border};
       box-shadow:0 0 3px rgba(0,0,0,0.4);
     "></div>`,
   })
@@ -47,22 +49,26 @@ function makeMergeSourceIcon() {
 
 const defaultIcon = makeIcon(false)
 const selectedIcon = makeIcon(true)
+const userAddedIcon = makeIcon(false, true)
+const userAddedSelectedIcon = makeIcon(true, true)
 const mergeTargetIcon = makeMergeTargetIcon()
 const mergeSourceIcon = makeMergeSourceIcon()
 
-function getIcon(stopId: number, selectedStopId: number | null, mergeMode: boolean, mergeTargetId: number | null, mergeSourceIds: number[]) {
+function getIcon(stopId: number, selectedStopId: number | null, mergeMode: boolean, mergeTargetId: number | null, mergeSourceIds: number[], userAdded: boolean = false) {
   if (mergeMode) {
     if (stopId === mergeTargetId) return mergeTargetIcon
     if (mergeSourceIds.includes(stopId)) return mergeSourceIcon
-    return defaultIcon
+    return userAdded ? userAddedIcon : defaultIcon
   }
-  return stopId === selectedStopId ? selectedIcon : defaultIcon
+  if (stopId === selectedStopId) return userAdded ? userAddedSelectedIcon : selectedIcon
+  return userAdded ? userAddedIcon : defaultIcon
 }
 
 export function EditorMarkers() {
   const map = useMap()
   const layerGroupRef = useRef<L.LayerGroup>(L.layerGroup())
   const markersRef = useRef<Map<number, L.Marker>>(new Map())
+  const userAddedIdsRef = useRef<Set<number>>(new Set())
 
   useEffect(() => {
     layerGroupRef.current.addTo(map)
@@ -103,7 +109,7 @@ export function EditorMarkers() {
       // Merge state changed — update icons without full rebuild
       if (mergeMode !== prevMergeMode || mergeTargetId !== prevMergeTargetId || mergeSourceIds !== prevMergeSourceIds) {
         for (const [stopId, marker] of markersRef.current.entries()) {
-          marker.setIcon(getIcon(stopId, selectedStopId, mergeMode, mergeTargetId, mergeSourceIds))
+          marker.setIcon(getIcon(stopId, selectedStopId, mergeMode, mergeTargetId, mergeSourceIds, userAddedIdsRef.current.has(stopId)))
         }
         return
       }
@@ -112,11 +118,11 @@ export function EditorMarkers() {
       if (selectedStopId !== prevSelectedId) {
         if (prevSelectedId !== null) {
           const m = markersRef.current.get(prevSelectedId)
-          if (m) m.setIcon(getIcon(prevSelectedId, selectedStopId, mergeMode, mergeTargetId, mergeSourceIds))
+          if (m) m.setIcon(getIcon(prevSelectedId, selectedStopId, mergeMode, mergeTargetId, mergeSourceIds, userAddedIdsRef.current.has(prevSelectedId)))
         }
         if (selectedStopId !== null) {
           const m = markersRef.current.get(selectedStopId)
-          if (m) m.setIcon(getIcon(selectedStopId, selectedStopId, mergeMode, mergeTargetId, mergeSourceIds))
+          if (m) m.setIcon(getIcon(selectedStopId, selectedStopId, mergeMode, mergeTargetId, mergeSourceIds, userAddedIdsRef.current.has(selectedStopId)))
         }
       }
     })
@@ -139,12 +145,20 @@ export function EditorMarkers() {
     layerGroupRef.current.clearLayers()
     markersRef.current.clear()
 
+    // Build user-added lookup
+    const addedIds = new Set<number>()
+    for (const f of features) {
+      if (f.properties.original_count === 0) addedIds.add(f.properties.stop_id)
+    }
+    userAddedIdsRef.current = addedIds
+
     for (const f of features) {
       const stopId = f.properties.stop_id
       const [lng, lat] = f.geometry.coordinates
+      const isUserAdded = addedIds.has(stopId)
       const marker = L.marker([lat, lng], {
         draggable: dragMode && !mergeMode,
-        icon: getIcon(stopId, selectedStopId, mergeMode, mergeTargetId, mergeSourceIds),
+        icon: getIcon(stopId, selectedStopId, mergeMode, mergeTargetId, mergeSourceIds, isUserAdded),
       })
 
       marker.bindTooltip(`#${stopId}`, { direction: 'top', offset: [0, -8] })

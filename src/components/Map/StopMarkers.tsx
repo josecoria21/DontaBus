@@ -1,8 +1,10 @@
+import L from 'leaflet'
 import { CircleMarker, Popup, useMap } from 'react-leaflet'
 import { useState, useEffect, useMemo } from 'react'
 import { STOPS_VISIBLE_ZOOM, NEARBY_RADIUS } from '../../lib/constants'
 import { haversineDistance } from '../../lib/geo'
 import { useMapStore } from '../../store/mapStore'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import type { StopsGeoJSON, StopRoutesData, RoutesGeoJSON } from '../../types'
 import { StopPopupContent } from './StopPopupContent'
 
@@ -20,6 +22,8 @@ export function StopMarkers({ stops, stopRoutes, routes, userPosition, nearestSt
   const map = useMap()
   const [visible, setVisible] = useState(map.getZoom() >= STOPS_VISIBLE_ZOOM)
   const setSelectedRoute = useMapStore((s) => s.setSelectedRoute)
+  const setSelectedStop = useMapStore((s) => s.setSelectedStop)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const onZoom = () => {
@@ -82,17 +86,22 @@ export function StopMarkers({ stops, stopRoutes, routes, userPosition, nearestSt
           color: '#1e40af',
           weight: 1.5,
         }}
+        eventHandlers={isMobile ? {
+          click: () => setSelectedStop({ stopId, lat, lng, routeKeys }),
+        } : undefined}
       >
-        <Popup maxWidth={260}>
-          <StopPopupContent
-            stopId={stopId}
-            lat={lat}
-            lng={lng}
-            routeKeys={routeKeys}
-            routes={routes}
-            onSelectRoute={setSelectedRoute}
-          />
-        </Popup>
+        {!isMobile && (
+          <Popup maxWidth={260} autoPanPaddingBottomRight={[10, 70] as L.PointExpression}>
+            <StopPopupContent
+              stopId={stopId}
+              lat={lat}
+              lng={lng}
+              routeKeys={routeKeys}
+              routes={routes}
+              onSelectRoute={setSelectedRoute}
+            />
+          </Popup>
+        )}
       </CircleMarker>
     )
   }
@@ -122,17 +131,22 @@ export function StopMarkers({ stops, stopRoutes, routes, userPosition, nearestSt
           color: '#b45309',
           weight: 2.5,
         }}
+        eventHandlers={isMobile ? {
+          click: () => setSelectedStop({ stopId, lat, lng, routeKeys }),
+        } : undefined}
       >
-        <Popup maxWidth={260}>
-          <StopPopupContent
-            stopId={stopId}
-            lat={lat}
-            lng={lng}
-            routeKeys={routeKeys}
-            routes={routes}
-            onSelectRoute={setSelectedRoute}
-          />
-        </Popup>
+        {!isMobile && (
+          <Popup maxWidth={260} autoPanPaddingBottomRight={[10, 70] as L.PointExpression}>
+            <StopPopupContent
+              stopId={stopId}
+              lat={lat}
+              lng={lng}
+              routeKeys={routeKeys}
+              routes={routes}
+              onSelectRoute={setSelectedRoute}
+            />
+          </Popup>
+        )}
       </CircleMarker>
     )
   }

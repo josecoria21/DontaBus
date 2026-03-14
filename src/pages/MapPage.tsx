@@ -12,6 +12,7 @@ import { useDirectionRecommendation } from '../hooks/useDirectionRecommendation'
 import { useMapStore } from '../store/mapStore'
 import { stopsNearPolyline } from '../lib/geo'
 import { LongPressHint } from '../components/Map/LongPressHint'
+import { StopBottomSheet } from '../components/Map/StopBottomSheet'
 
 export function MapPage() {
   const { t } = useTranslation()
@@ -175,6 +176,9 @@ export function MapPage() {
 
       {/* Long-press hint for first-time users */}
       {!destination && !selectedRouteKey && <LongPressHint />}
+
+      {/* Stop bottom sheet (mobile) */}
+      <StopBottomSheet />
 
       {/* Locate me button */}
       <LocateButton

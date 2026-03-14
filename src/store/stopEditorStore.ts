@@ -52,6 +52,7 @@ interface StopEditorState {
   saveToServer: () => Promise<boolean>
   linkRouteToStop: (stopId: number, routeKey: string) => void
   unlinkRouteFromStop: (stopId: number, routeKey: string) => void
+  markAsUserAdded: (stopId: number) => void
   startMerge: () => void
   toggleMergeSource: (stopId: number) => void
   cancelMerge: () => void
@@ -368,6 +369,21 @@ export const useStopEditorStore = create<StopEditorState>((set, get) => ({
       features: updated,
       stopRoutes: newSR,
       routeStops: newRS,
+      isDirty: true,
+      ...pushHistory(history, historyIndex, snapshot),
+    })
+  },
+
+  markAsUserAdded: (stopId) => {
+    const { features, stopRoutes, routeStops, history, historyIndex } = get()
+    const updated = features.map(f =>
+      f.properties.stop_id === stopId
+        ? { ...f, properties: { ...f.properties, original_count: 0 } }
+        : f
+    )
+    const snapshot: EditorSnapshot = { features: updated, stopRoutes, routeStops }
+    set({
+      features: updated,
       isDirty: true,
       ...pushHistory(history, historyIndex, snapshot),
     })

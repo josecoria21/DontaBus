@@ -146,5 +146,7 @@
   "admin_route_image_pick": "Choose photo",
   "admin_route_image_remove": "Remove photo",
   "admin_image_upload_error": "Failed to upload image",
-  "admin_image_uploading": "Uploading..."
+  "admin_image_uploading": "Uploading...",
+  "admin_user_added": "User Added",
+  "admin_mark_as_mine": "Mark as mine"
 }

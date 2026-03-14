@@ -15,6 +15,7 @@ export function StopInfoPanel() {
   const startMerge = useStopEditorStore(s => s.startMerge)
   const linkRouteToStop = useStopEditorStore(s => s.linkRouteToStop)
   const unlinkRouteFromStop = useStopEditorStore(s => s.unlinkRouteFromStop)
+  const markAsUserAdded = useStopEditorStore(s => s.markAsUserAdded)
 
   const { routes: routeData } = useRouteData()
 
@@ -79,8 +80,13 @@ export function StopInfoPanel() {
     <div className="fixed bottom-[8.5rem] sm:bottom-[4.5rem] left-3 right-3 z-[1003] bg-white/95 backdrop-blur rounded-lg shadow-lg p-3 max-w-md mx-auto max-h-[60vh] overflow-y-auto">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-sm font-semibold text-slate-800">
+          <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
             Stop #{feature.properties.stop_id}
+            {feature.properties.original_count === 0 && (
+              <span className="text-[9px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+                {t('admin_user_added')}
+              </span>
+            )}
           </div>
           <div className="text-xs text-slate-500 mt-0.5">
             Routes: {routes.length} · Count: {feature.properties.original_count}
@@ -195,6 +201,15 @@ export function StopInfoPanel() {
             {t('admin_cancel')}
           </button>
         </div>
+      )}
+
+      {feature.properties.original_count > 0 && (
+        <button
+          onClick={() => markAsUserAdded(selectedStopId)}
+          className="mt-2 w-full text-xs text-purple-700 hover:bg-purple-50 border border-purple-200 rounded py-1 font-medium transition-colors"
+        >
+          {t('admin_mark_as_mine')}
+        </button>
       )}
 
       <button

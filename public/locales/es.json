@@ -146,5 +146,7 @@
   "admin_route_image_pick": "Elegir foto",
   "admin_route_image_remove": "Quitar foto",
   "admin_image_upload_error": "Error al subir la imagen",
-  "admin_image_uploading": "Subiendo..."
+  "admin_image_uploading": "Subiendo...",
+  "admin_user_added": "Agregada",
+  "admin_mark_as_mine": "Marcar como mía"
 }
