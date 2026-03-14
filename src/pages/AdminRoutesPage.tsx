@@ -6,12 +6,22 @@ import { useRouteEditorStore, buildRouteKey } from '../store/routeEditorStore'
 import { syncRoutesToSupabase } from '../lib/adminApi'
 import { uploadRouteImage } from '../lib/imageUpload'
 import { ROUTE_COLORS } from '../lib/constants'
+import { getRouteGroupKey } from '../lib/routeGrouping'
 import type { RouteProperties } from '../types'
 
 const ROUTE_TYPES: RouteProperties['route_type'][] = ['ruta', 'circuito', 'circuito_alterno']
 const VEHICLE_TYPES: NonNullable<RouteProperties['vehicle_type']>[] = ['autobus', 'combi']
 
 const DIRECTION_PRESETS = ['ida', 'vuelta', 'principal', 'ruta_1', 'ruta_2', 'variant_1', 'variant_2']
+
+const DIRECTION_COUNTERPART: Record<string, string> = {
+  ida: 'vuelta',
+  vuelta: 'ida',
+  ruta_1: 'ruta_2',
+  ruta_2: 'ruta_1',
+  variant_1: 'variant_2',
+  variant_2: 'variant_1',
+}
 
 export function AdminRoutesPage() {
   const { t } = useTranslation()
@@ -50,6 +60,12 @@ export function AdminRoutesPage() {
     () => new Set(customRoutes.map(r => r.properties.route_key)),
     [customRoutes]
   )
+
+  // Set of all existing route keys for counterpart lookup
+  const allRouteKeys = useMemo(() => {
+    if (!routes) return new Set<string>()
+    return new Set(routes.features.map(r => r.properties.route_key))
+  }, [routes])
 
   const allRoutes = useMemo(() => {
     if (!routes) return []
@@ -214,6 +230,26 @@ export function AdminRoutesPage() {
     }
   }
 
+  function handleCreateCounterpart(routeKey: string) {
+    const route = allRoutes.find(r => r.properties.route_key === routeKey)
+    if (!route) return
+    const p = route.properties
+    const counterDir = DIRECTION_COUNTERPART[p.direction]
+    if (!counterDir) return
+
+    setRouteNum(p.route_num)
+    setRouteName(p.name)
+    setRouteType(p.route_type)
+    setVehicleType(p.vehicle_type || 'autobus')
+    setDirection(counterDir)
+    setCustomDirection('')
+    setEditingRouteKey(null)
+    setImageFile(null)
+    setImagePreview(p.image_url || null)
+    setError(null)
+    setShowForm(true)
+  }
+
   async function handleSync() {
     if (customRoutes.length === 0 || syncing) return
     setSyncing(true)
@@ -362,8 +398,19 @@ export function AdminRoutesPage() {
                     </div>
                   </div>
 
-                  {/* Edit (all routes) + Delete (custom only) */}
+                  {/* Actions: counterpart + edit + delete */}
                   <div className="flex items-center gap-1">
+                    {DIRECTION_COUNTERPART[p.direction] && !allRouteKeys.has(buildRouteKey(p.route_num, DIRECTION_COUNTERPART[p.direction])) && (
+                      <button
+                        onClick={() => handleCreateCounterpart(p.route_key)}
+                        className="p-2 text-purple-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        title={t('admin_create_counterpart', { direction: t(`direction_${DIRECTION_COUNTERPART[p.direction]}`, { defaultValue: DIRECTION_COUNTERPART[p.direction] }) })}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                          <path fillRule="evenodd" d="M13.2 2.24a.75.75 0 0 0 .04 1.06l2.1 1.95H6.75a.75.75 0 0 0 0 1.5h8.59l-2.1 1.95a.75.75 0 1 0 1.02 1.1l3.5-3.25a.75.75 0 0 0 0-1.1l-3.5-3.25a.75.75 0 0 0-1.06.04Zm-6.4 8a.75.75 0 0 0-1.06-.04l-3.5 3.25a.75.75 0 0 0 0 1.1l3.5 3.25a.75.75 0 1 0 1.02-1.1l-2.1-1.95h8.59a.75.75 0 0 0 0-1.5H4.66l2.1-1.95a.75.75 0 0 0 .04-1.06Z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleEditClick(p.route_key)}
                       className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

@@ -148,5 +148,6 @@
   "admin_image_upload_error": "Failed to upload image",
   "admin_image_uploading": "Uploading...",
   "admin_user_added": "User Added",
-  "admin_mark_as_mine": "Mark as mine"
+  "admin_mark_as_mine": "Mark as mine",
+  "admin_create_counterpart": "Create {{direction}}"
 }
